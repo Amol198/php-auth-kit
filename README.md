@@ -11,7 +11,7 @@ hashing, each behind a small interface and a deterministic `Clock` for testing.
 | Component | State |
 |---|---|
 | `Support\Base64Url`, `Support\Clock` | done |
-| HS256 token service | in progress |
+| HS256 token service (`Token\TokenService`) | done |
 | Login rate limiter | in progress |
 | Password hashing with transparent rehash | in progress |
 
@@ -25,6 +25,18 @@ hashing, each behind a small interface and a deterministic `Clock` for testing.
 ```bash
 composer install
 composer test
+```
+
+## Tokens
+
+```php
+use AuthKit\Support\SystemClock;
+use AuthKit\Token\TokenService;
+
+$tokens = new TokenService(getenv('APP_TOKEN_SECRET'), new SystemClock());
+
+$jwt    = $tokens->issue(['sub' => $user->id, 'scope' => 'read'], ttlSeconds: 900);
+$claims = $tokens->verify($jwt); // throws AuthKit\Token\InvalidToken
 ```
 
 ## Design notes

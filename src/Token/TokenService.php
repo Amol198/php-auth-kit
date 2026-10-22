@@ -75,17 +75,15 @@ final class TokenService
         $header = $this->decodeSegment($encodedHeader);
         $claims = $this->decodeSegment($encodedPayload);
 
-        $alg = (string) ($header['alg'] ?? '');
-        $hashAlgo = self::ALGORITHMS[$alg] ?? null;
-        if ($hashAlgo === null && $alg !== 'none') {
-            throw InvalidToken::unsupportedAlgorithm($alg);
+        // Never let the token pick its own algorithm: only the configured one is accepted.
+        $alg = $header['alg'] ?? null;
+        if (!is_string($alg) || !hash_equals($this->algorithm, $alg)) {
+            throw InvalidToken::unsupportedAlgorithm(is_string($alg) ? $alg : '');
         }
 
-        if ($hashAlgo !== null) {
-            $expected = $this->sign($encodedHeader . '.' . $encodedPayload, $hashAlgo);
-            if (Base64Url::encode($expected) !== $encodedSignature) {
-                throw InvalidToken::badSignature();
-            }
+        $expected = Base64Url::encode($this->sign($encodedHeader . '.' . $encodedPayload, self::ALGORITHMS[$this->algorithm]));
+        if (!hash_equals($expected, $encodedSignature)) {
+            throw InvalidToken::badSignature();
         }
 
         $now = $this->clock->now();

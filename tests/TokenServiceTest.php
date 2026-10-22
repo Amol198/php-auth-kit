@@ -75,6 +75,28 @@ final class TokenServiceTest extends TestCase
         $this->tokens->verify($token);
     }
 
+    public function testUnsignedAlgNoneTokenIsRejected(): void
+    {
+        $encode = static fn (string $json): string => rtrim(strtr(base64_encode($json), '+/', '-_'), '=');
+        $token = $encode('{"alg":"none","typ":"JWT"}') . '.' . $encode('{"sub":"admin"}') . '.';
+
+        $this->expectException(InvalidToken::class);
+        $this->expectExceptionMessage('algorithm');
+
+        $this->tokens->verify($token);
+    }
+
+    public function testTokenWithDifferentHmacAlgorithmIsRejected(): void
+    {
+        $other = new TokenService(self::SECRET, $this->clock, 'HS512');
+        $token = $other->issue(['sub' => 'user-42'], 300);
+
+        $this->expectException(InvalidToken::class);
+        $this->expectExceptionMessage('algorithm');
+
+        $this->tokens->verify($token);
+    }
+
     public function testMalformedTokenIsRejected(): void
     {
         $this->expectException(InvalidToken::class);
